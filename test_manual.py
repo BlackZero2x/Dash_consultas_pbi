@@ -24,14 +24,21 @@ import socket
 import subprocess
 from datetime import datetime
 
-sys.path.insert(0, r'C:\proyectos\AVANCE_MOVISTAR\whatsapp_server')
+import os
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv(Path(__file__).parent / '.env')
+
+_WA_SERVER_PATH = os.environ.get('WA_SERVER_PATH', '')
+if _WA_SERVER_PATH:
+    sys.path.insert(0, _WA_SERVER_PATH)
 
 from extraer_datos import ejecutar as extraer
 from actualizar_pbi import triggerear_refresh, obtener_estado_refresh
 from capturar_pbi import capturar_pagina, CHROME_EXE, CHROME_ARGS
 from wa_client import WhatsAppClient
 
-WA_GRUPO              = 'Canal Fija 2026 Gestión AUREN'
+WA_GRUPO              = os.environ['WA_GRUPO']
 REFRESH_POLL_INTERVAL = 30
 REFRESH_TIMEOUT       = 600
 
@@ -104,8 +111,8 @@ def paso_whatsapp(imagen, corte=None):
     print('=== ENVÍO WHATSAPP ===')
     wa = WhatsAppClient(
         host='localhost',
-        port=8002,
-        config_path=r'C:\proyectos\AVANCE_MOVISTAR\whatsapp_server\config.json',
+        port=int(os.environ.get('WA_PORT', '8002')),
+        config_path=os.environ.get('WA_CONFIG_PATH', ''),
     )
     corte_txt = corte if corte else datetime.now().strftime('%d/%m/%Y %H:%M')
     texto = (

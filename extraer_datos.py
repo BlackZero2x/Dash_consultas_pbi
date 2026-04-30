@@ -33,9 +33,10 @@ logger = logging.getLogger(__name__)
 
 def _detectar_onedrive() -> str:
     """Intenta localizar la carpeta OneDrive automáticamente si no está en .env."""
+    _org = os.environ.get('ONEDRIVE_ORG_FOLDER', 'datalake_processed_auren')
     candidatos = [
-        Path(os.environ.get('USERPROFILE', '')) / 'OneDrive - grupoauren.pe' / 'datalake_processed_auren',
-        Path(os.environ.get('ONEDRIVE', '')) / 'datalake_processed_auren',
+        Path(os.environ.get('USERPROFILE', '')) / _org,
+        Path(os.environ.get('ONEDRIVE', '')) / _org,
     ]
     for c in candidatos:
         if c.exists():
@@ -52,10 +53,10 @@ def _detectar_onedrive() -> str:
 # ══════════════════════════════════════════════════════════════
 
 # ── SQL Server ─────────────────────────────────────────────────
-SQL_SERVER   = os.environ.get('SQL_SERVER',   r'AUREN22\AUREN')
-SQL_DATABASE = os.environ.get('SQL_DATABASE', 'eAuren')
-SQL_USER     = os.environ.get('SQL_USER',     'eauren')
-SQL_PASSWORD = os.environ.get('SQL_PASSWORD', 'eauren')
+SQL_SERVER   = os.environ.get('SQL_SERVER',   '')
+SQL_DATABASE = os.environ.get('SQL_DATABASE', '')
+SQL_USER     = os.environ.get('SQL_USER',     '')
+SQL_PASSWORD = os.environ.get('SQL_PASSWORD', '')
 
 # ── Destino OneDrive ───────────────────────────────────────────
 ONEDRIVE_PATH = os.environ.get('ONEDRIVE_PATH') or _detectar_onedrive()
@@ -63,11 +64,7 @@ OUTPUT_FILE   = os.path.join(ONEDRIVE_PATH, 'BASE_CON.csv')
 RH_FILE       = os.path.join(ONEDRIVE_PATH, 'RH.csv')
 
 # ── Google Sheets (tabla RH publicada como CSV) ────────────────
-RH_URL = (
-    'https://docs.google.com/spreadsheets/d/e/'
-    '2PACX-1vSXxqrGGs4_mU4n511v3zBkKo4buAFv0TwrlrrX4XD2jFjIT7cC8kvH7ER32Ye2hiOpo3mAFsUkyydg'
-    '/pub?gid=241856834&single=true&output=csv'
-)
+RH_URL = os.environ['RH_SHEETS_URL']
 
 
 # ══════════════════════════════════════════════════════════════

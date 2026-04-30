@@ -40,10 +40,12 @@ from extraer_datos import ejecutar as extraer
 from actualizar_pbi import triggerear_refresh, obtener_estado_refresh
 from capturar_pbi import capturar_pagina
 
-sys.path.insert(0, r'C:\proyectos\AVANCE_MOVISTAR\whatsapp_server')
-from wa_client import WhatsAppClient
-
 load_dotenv(Path(__file__).parent / '.env')
+
+_WA_SERVER_PATH = os.environ.get('WA_SERVER_PATH', '')
+if _WA_SERVER_PATH:
+    sys.path.insert(0, _WA_SERVER_PATH)
+from wa_client import WhatsAppClient
 
 # ── Logging centralizado ───────────────────────────────────────
 _log_dir = Path(__file__).parent / 'logs'
@@ -65,8 +67,8 @@ logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
 # ══════════════════════════════════════════════════════════════
 
 # ── Filtro del correo trigger ──────────────────────────────────
-REMITENTE = 'e@auren.com.pe'
-ASUNTO    = 'dito_consultas_hoy_csv - Actualización disponible'
+REMITENTE = os.environ['GMAIL_REMITENTE']
+ASUNTO    = os.environ['GMAIL_ASUNTO']
 
 # ── Autenticación Gmail ────────────────────────────────────────
 SCOPES           = ['https://www.googleapis.com/auth/gmail.modify']
@@ -74,7 +76,7 @@ CREDENTIALS_FILE = 'credentials.json'
 TOKEN_FILE       = 'token.json'
 
 # ── WhatsApp ───────────────────────────────────────────────────
-WA_GRUPO = 'Canal Fija 2026 Gestión AUREN'
+WA_GRUPO = os.environ['WA_GRUPO']
 
 # ── Espera máxima para que el refresh de PBI complete (seg) ───
 REFRESH_POLL_INTERVAL = 30
@@ -156,8 +158,8 @@ def ejecutar_pipeline(gmail_service, msg_id):
     logger.info('-- Paso 5: Envío WhatsApp --')
     wa = WhatsAppClient(
         host='localhost',
-        port=8002,
-        config_path=r'C:\proyectos\AVANCE_MOVISTAR\whatsapp_server\config.json',
+        port=int(os.environ.get('WA_PORT', '8002')),
+        config_path=os.environ.get('WA_CONFIG_PATH', ''),
     )
     if not wa.is_ready():
         logger.warning('Servidor WhatsApp no disponible — omitiendo envío.')

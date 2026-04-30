@@ -31,13 +31,14 @@ logger = logging.getLogger(__name__)
 # 1. CONFIGURACIÓN
 # ══════════════════════════════════════════════════════════════
 
-WORKSPACE_ID = '4431c026-df58-4f9c-9630-bb40072f829a'
-REPORT_ID    = '2ab7921e-a592-472d-960b-1949fc6dec53'
-PAGE_ID      = 'aa060e7c3b795463e58a'   # página ZONAL_SUPERVISOR
-PAGE_NAME    = 'ZONAL_SUPERVISOR'
+WORKSPACE_ID = os.environ['PBI_WORKSPACE_ID']
+REPORT_ID    = os.environ['PBI_REPORT_ID']
+PAGE_ID      = os.environ['PBI_PAGE_ID']
+PAGE_NAME    = os.environ.get('PBI_PAGE_NAME', 'ZONAL_SUPERVISOR')
 
 SCREENSHOT_DIR = os.environ.get('SCREENSHOT_DIR', str(Path(__file__).parent / 'capturas'))
-CHROME_ARGS    = ['--remote-debugging-port=9222', r'--user-data-dir=C:\chrome_pbi_session']
+_chrome_user_dir = os.environ.get('CHROME_USER_DIR', r'C:\chrome_pbi_session')
+CHROME_ARGS    = ['--remote-debugging-port=9222', f'--user-data-dir={_chrome_user_dir}']
 
 RENDER_WAIT        = 10   # segundos esperando renderizado de visuals
 DIAS_RETENSION     = 7    # días que se conservan las capturas
