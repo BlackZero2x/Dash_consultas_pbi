@@ -1,0 +1,18 @@
+# ── Credenciales y tokens (NUNCA subir) ───────────────────────
+.env
+credentials.json
+token.json
+
+# ── Cache Python ──────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Capturas generadas ────────────────────────────────────────
+capturas/
+
+# ── Logs de ejecución ─────────────────────────────────────────
+logs/
+
+# ── Claude Code ───────────────────────────────────────────────
+.claude/
