@@ -46,8 +46,8 @@ El proceso se dispara automáticamente con un correo electrónico:
           │
           ▼
     Gmail API verifica si hay un correo NO LEÍDO de:
-       De:     e@auren.com.pe
-       Asunto: dito_consultas_hoy_csv - Actualización disponible
+       De:     (configurado en GMAIL_REMITENTE del .env)
+       Asunto: (configurado en GMAIL_ASUNTO del .env)
           │
           ├── Sin correo → el script termina sin hacer nada
           │
@@ -86,7 +86,7 @@ Fuentes de datos
 extraer_datos.py ── ETL de extracción y transformación
     │
     ▼
-OneDrive / datalake_processed_auren/
+OneDrive / (carpeta configurada en ONEDRIVE_PATH del .env)/
     ├── BASE_CON.csv   ← dataset principal (consultas del mes actual + anterior)
     └── RH.csv         ← recursos humanos activos en campo
     │
@@ -113,7 +113,7 @@ wa_client.py (Python) → HTTP POST localhost:8002
 wa_server.js (Node.js + open-wa) → WhatsApp Web
     │
     ▼
-Grupo "Canal Fija 2026 Gestión AUREN"
+Grupo de WhatsApp (configurado en WA_GRUPO del .env)
 ```
 
 ---
@@ -132,13 +132,13 @@ Es el punto de entrada del sistema. Corre una sola vez por ejecución (el Progra
 
 **Constantes configurables en el archivo:**
 
-| Constante | Valor por defecto | Descripción |
-|-----------|-------------------|-------------|
-| `REMITENTE` | `e@auren.com.pe` | Remitente del correo trigger |
-| `ASUNTO` | `dito_consultas_hoy_csv - Actualización disponible` | Asunto exacto del correo |
-| `WA_GRUPO` | `Canal Fija 2026 Gestión AUREN` | Grupo de WhatsApp destino |
-| `REFRESH_POLL_INTERVAL` | `30` | Segundos entre consultas de estado del refresh |
-| `REFRESH_TIMEOUT` | `600` | Segundos máximos esperando el refresh (10 min) |
+| Variable `.env` | Descripción |
+|----------------|-------------|
+| `GMAIL_REMITENTE` | Remitente del correo trigger |
+| `GMAIL_ASUNTO` | Asunto exacto del correo |
+| `WA_GRUPO` | Grupo de WhatsApp destino |
+| `REFRESH_POLL_INTERVAL` (código) | Segundos entre consultas de estado del refresh (default: 30) |
+| `REFRESH_TIMEOUT` (código) | Segundos máximos esperando el refresh (default: 600) |
 
 ---
 
@@ -270,9 +270,9 @@ El modo `--solo-whatsapp` busca automáticamente el archivo `.txt` sidecar (mism
 Script `.bat` invocado por Windows Task Scheduler. Establece el directorio de trabajo, fuerza encoding UTF-8 y redirige toda la salida al log diario.
 
 ```bat
-cd /d "C:\proyectos\Dash_consultas_pbi"
+cd /d "<ruta_del_proyecto>"
 set PYTHONIOENCODING=utf-8
-"C:\proyectos\.venv\Scripts\python.exe" -u push_dash_pbi_consultas.py >> logs\pipeline.log 2>&1
+"<ruta_al_venv>\Scripts\python.exe" -u push_dash_pbi_consultas.py >> logs\pipeline.log 2>&1
 ```
 
 ---
@@ -345,9 +345,9 @@ Dash_consultas_pbi/
 - **Node.js 18+** — para el servidor WhatsApp (compartido con AVANCE_MOVISTAR)
 - **ODBC Driver 17 for SQL Server** — para la conexión a la base de datos
 - **Google Chrome** instalado (se detecta automáticamente en rutas estándar)
-- Acceso de red al servidor SQL corporativo `AUREN22\AUREN`
+- Acceso de red al servidor SQL corporativo (configurado en `SQL_SERVER` del `.env`)
 - Cuenta de Google con las APIs de Gmail habilitadas
-- WhatsApp activo en el teléfono (sesión del servidor en `AVANCE_MOVISTAR\whatsapp_server\`)
+- WhatsApp activo en el teléfono (sesión del servidor Node.js configurada en `WA_SERVER_PATH`)
 
 ### Paso 1 — Clonar el repositorio
 
@@ -438,34 +438,36 @@ Crear tres tareas programadas:
 
 ### Variables de entorno (`.env`)
 
-| Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
-| `PBI_CLIENT_ID` | App registration de Azure AD | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `PBI_CLIENT_SECRET` | Secreto de la app de Azure AD | `xxxxxx~xxxxxx` |
-| `PBI_TENANT_ID` | Tenant ID de Azure AD | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `PBI_WORKSPACE_ID` | ID del workspace de Power BI | `4431c026-df58-4f9c-9630-bb40072f829a` |
-| `PBI_DATASET_ID` | ID del dataset a refrescar | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `SQL_SERVER` | Servidor SQL (default: `AUREN22\AUREN`) | `AUREN22\AUREN` |
-| `SQL_DATABASE` | Base de datos (default: `eAuren`) | `eAuren` |
-| `SQL_USER` | Usuario SQL (opcional, usa Windows auth si no se define) | `eauren` |
-| `SQL_PASSWORD` | Contraseña SQL | `****` |
-| `ONEDRIVE_PATH` | Ruta al datalake en OneDrive (auto-detectada si no está) | `C:\Users\...\OneDrive - grupoauren.pe\datalake_processed_auren` |
-| `CHROME_EXE` | Ruta a Chrome (auto-detectada si no está) | `C:\Program Files\Google\Chrome\Application\chrome.exe` |
-| `SCREENSHOT_DIR` | Directorio para capturas (default: `capturas/`) | `C:\proyectos\Dash_consultas_pbi\capturas` |
-| `HTTPS_PROXY` | Proxy corporativo (opcional) | `http://proxy.empresa.com:8080` |
-| `PROXY_USER` | Usuario del proxy (opcional) | `usuario` |
-| `PROXY_PASS` | Contraseña del proxy (opcional) | `****` |
-
-### Constantes del reporte Power BI
-
-Definidas directamente en `capturar_pbi.py` (no en `.env`, ya que identifican el reporte específico):
-
-| Constante | Valor actual | Descripción |
-|-----------|-------------|-------------|
-| `WORKSPACE_ID` | `4431c026-...` | ID del workspace donde está el reporte |
-| `REPORT_ID` | `2ab7921e-...` | ID del reporte de Power BI |
-| `PAGE_ID` | `aa060e7c3b795463e58a` | ID de la página ZONAL_SUPERVISOR |
-| `PAGE_NAME` | `ZONAL_SUPERVISOR` | Nombre de la página capturada |
+| Variable | Descripción |
+|----------|-------------|
+| `PBI_CLIENT_ID` | App registration de Azure AD |
+| `PBI_CLIENT_SECRET` | Secreto de la app de Azure AD |
+| `PBI_TENANT_ID` | Tenant ID de Azure AD |
+| `PBI_WORKSPACE_ID` | ID del workspace de Power BI |
+| `PBI_DATASET_ID` | ID del dataset a refrescar |
+| `PBI_REPORT_ID` | ID del reporte de Power BI |
+| `PBI_PAGE_ID` | ID de la página del reporte a capturar |
+| `PBI_PAGE_NAME` | Nombre de la página (para logs) |
+| `PBI_REPORT_URL` | URL completa del reporte (usada en `arranque_chrome.bat`) |
+| `SQL_SERVER` | Servidor SQL (ej: `SERVIDOR\INSTANCIA`) |
+| `SQL_DATABASE` | Nombre de la base de datos |
+| `SQL_USER` | Usuario SQL (dejar vacío para Windows auth) |
+| `SQL_PASSWORD` | Contraseña SQL |
+| `ONEDRIVE_PATH` | Ruta completa al datalake en OneDrive |
+| `ONEDRIVE_ORG_FOLDER` | Subcarpeta a buscar cuando se auto-detecta |
+| `RH_SHEETS_URL` | URL del Google Sheet de RH publicado como CSV |
+| `GMAIL_REMITENTE` | Correo del remitente del trigger |
+| `GMAIL_ASUNTO` | Asunto exacto del correo trigger |
+| `WA_GRUPO` | Nombre del grupo de WhatsApp destino |
+| `WA_PORT` | Puerto del servidor WhatsApp (default: 8002) |
+| `WA_SERVER_PATH` | Ruta al directorio del servidor WhatsApp |
+| `WA_CONFIG_PATH` | Ruta al `config.json` del servidor WhatsApp |
+| `CHROME_EXE` | Ruta a Chrome (auto-detectada si no está) |
+| `CHROME_USER_DIR` | Directorio de perfil de Chrome para la sesión PBI |
+| `SCREENSHOT_DIR` | Directorio para capturas (default: `capturas/`) |
+| `HTTPS_PROXY` | Proxy corporativo (opcional) |
+| `PROXY_USER` | Usuario del proxy (opcional) |
+| `PROXY_PASS` | Contraseña del proxy (opcional) |
 
 ---
 
@@ -490,7 +492,7 @@ python test_manual.py --solo-refresh
 python test_manual.py --solo-captura
 
 # Reenviar una captura existente por WhatsApp
-python test_manual.py --solo-whatsapp "C:\proyectos\Dash_consultas_pbi\capturas\zonal_supervisor_20260430_120411.png"
+python test_manual.py --solo-whatsapp "capturas\zonal_supervisor_YYYYMMDD_HHMMSS.png"
 ```
 
 ### Ejecutar scripts individuales
@@ -620,7 +622,7 @@ Si se cambia la resolución del monitor o el zoom de Chrome, estos valores deben
 | **RH** | Recursos Humanos — tabla que mapea DNI → vendedor → supervisor → zona |
 | **Ultimo Corte** | Fecha/hora del dato más reciente redondeada al corte horario más cercano (10am, 12pm, 2pm, 4pm) |
 | **ZONAL_SUPERVISOR** | Página del dashboard de Power BI que muestra el resumen por zonal y supervisor |
-| **eAuren** | Base de datos SQL Server donde se almacenan las consultas de la fuerza de ventas |
+| **eAuren** | Nombre interno de la base de datos SQL Server del sistema corporativo |
 | **fija_base_dito_consultas_hoy** | Vista/tabla SQL que contiene los registros del mes actual y anterior |
 | **INTENCIONES** | Tipo de registro que representa una consulta/intención de venta |
 | **RUS** | Tipo de registro que representa una venta cerrada |
@@ -628,7 +630,7 @@ Si se cambia la resolución del monitor o el zoom de Chrome, estos valores deben
 | **Service Principal** | App registrada en Azure AD que actúa como identidad de aplicación para Power BI REST API |
 | **CDP** | Chrome DevTools Protocol — API de bajo nivel para controlar Chrome remotamente |
 | **Sidecar TXT** | Archivo `.txt` con el mismo nombre que el PNG de captura, que contiene el valor de "Ultimo Corte" leído del DOM |
-| **datalake_processed_auren** | Carpeta en OneDrive donde se depositan los CSV procesados para que Power BI los consuma |
+| **datalake** | Carpeta en OneDrive donde se depositan los CSV procesados para que Power BI los consuma (ruta en `ONEDRIVE_PATH`) |
 
 ---
 
@@ -693,8 +695,8 @@ Opciones:
 
 ### El servidor WhatsApp no está disponible
 
-1. Verificar que el servidor de AVANCE_MOVISTAR está activo: `python C:\proyectos\AVANCE_MOVISTAR\whatsapp_server\wa_client.py --health`
-2. Si no responde, ejecutar `C:\proyectos\AVANCE_MOVISTAR\start_wa_server.bat`.
+1. Verificar que el servidor está activo: `python <WA_SERVER_PATH>\wa_client.py --health`
+2. Si no responde, ejecutar `start_wa_server.bat` en el directorio del servidor WhatsApp.
 3. Revisar si la sesión de WhatsApp expiró (puede requerir re-escanear el QR).
 
 ---
