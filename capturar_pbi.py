@@ -40,17 +40,17 @@ SCREENSHOT_DIR = os.environ.get('SCREENSHOT_DIR', str(Path(__file__).parent / 'c
 _chrome_user_dir = os.environ.get('CHROME_USER_DIR', r'C:\chrome_pbi_session')
 CHROME_ARGS    = ['--remote-debugging-port=9222', f'--user-data-dir={_chrome_user_dir}']
 
-RENDER_WAIT        = 10   # segundos esperando renderizado de visuals
+RENDER_WAIT        = 25   # segundos esperando renderizado de visuals
 DIAS_RETENSION     = 7    # días que se conservan las capturas
 FILTRO_HORA_INICIO = 12   # hora a partir de la cual se aplica filtro fecha=hoy
 WORKER_TIMEOUT     = 90   # segundos máximos para que el worker complete
 
 # Recorte del viewport para eliminar barras de Chrome y paneles de PBI Service.
-# Valores calibrados para 1366x768 (viewport por defecto de Chrome con CDP).
+# Valores calibrados para 1920x1080.
 CLIP_X = 265   # margen izquierdo (panel nav PBI + barra lateral)
 CLIP_Y = 100   # margen superior (barra Chrome + barra PBI Service)
-CLIP_W = 1350  # 1440 - 255 (izq) - 40 (derecha)
-CLIP_H = 640   # 860 - 175 (sup) - 30 (inferior)
+CLIP_W = 1590  # ancho hasta antes del panel "Filtros" (1920 - 265 - 65)
+CLIP_H = 930   # alto hasta antes de barra de zoom (1080 - 100 - 50)
 
 _WORKER = str(Path(__file__).parent / '_captura_worker.py')
 
@@ -101,10 +101,11 @@ def _url_reporte() -> str:
         f'https://app.powerbi.com/groups/{WORKSPACE_ID}'
         f'/reports/{REPORT_ID}/{PAGE_ID}'
     )
+    params = 'navContentPaneEnabled=false&filterPaneEnabled=false&bookmarkGuid='
     if datetime.now().hour >= FILTRO_HORA_INICIO:
         hoy = date.today().isoformat()
-        return base + f"?filter=BASE_CON/fecha_registro eq '{hoy}'"
-    return base
+        return base + f"?filter=BASE_CON/fecha_registro eq '{hoy}'&{params}"
+    return base + f'?{params}'
 
 
 def _abrir_chrome():
@@ -170,7 +171,12 @@ def capturar_pagina(output_path: str = None) -> tuple:
 
     if proc.returncode != 0 or not proc.stdout.strip():
         stderr = proc.stderr.strip()
-        raise RuntimeError(f'Worker de captura falló (rc={proc.returncode}): {stderr or "sin salida"}')
+        stdout = proc.stdout.strip()
+        raise RuntimeError(
+            f'Worker de captura falló (rc={proc.returncode})\n'
+            f'  stdout: {stdout[:300] or "(vacío)"}\n'
+            f'  stderr: {stderr[:300] or "(vacío)"}'
+        )
 
     try:
         data = json.loads(proc.stdout.strip().splitlines()[-1])
@@ -185,6 +191,8 @@ def capturar_pagina(output_path: str = None) -> tuple:
         logger.info(f'Ultimo Corte leido: {ultimo_corte}')
     else:
         logger.warning('Ultimo Corte no detectado en DOM.')
+
+    logger.info(f'Método: {data.get("metodo")}  |  Filtro fecha: {data.get("filtro_fecha")}  |  Viewport: {data.get("viewport")}  |  Clip: {data.get("clip")}')
 
     logger.info(f'Captura guardada: {dest}')
     return dest, ultimo_corte
