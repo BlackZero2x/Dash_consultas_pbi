@@ -39,6 +39,7 @@ from googleapiclient.discovery import build
 from extraer_datos import ejecutar as extraer
 from actualizar_pbi import triggerear_refresh, obtener_estado_refresh
 from capturar_pbi import capturar_pagina
+from vendedores_sin_consultas import enviar_mensajes as enviar_ausentes
 
 load_dotenv(Path(__file__).parent / '.env')
 
@@ -163,20 +164,28 @@ def ejecutar_pipeline(gmail_service, msg_id):
     )
     if not wa.is_ready():
         logger.warning('Servidor WhatsApp no disponible — omitiendo envío.')
-    elif imagen:
-        corte_txt = ultimo_corte if ultimo_corte else ahora
-        estado_txt = 'actualizado correctamente' if refresh_ok else 'actualizado (verificar errores)'
-        texto = (
-            f'Dashboard Consultas {estado_txt}\n'
-            f'Ultimo Corte: {corte_txt}\n'
-            f'Vista: ZONAL / SUPERVISOR'
-        )
-        wa.send_image(WA_GRUPO, imagen, caption=texto)
     else:
-        wa.send_text(
-            WA_GRUPO,
-            f'Dashboard Consultas actualizado ({ahora}) - captura no disponible.'
-        )
+        if imagen:
+            corte_txt = ultimo_corte if ultimo_corte else ahora
+            estado_txt = 'actualizado correctamente' if refresh_ok else 'actualizado (verificar errores)'
+            texto = (
+                f'Dashboard Consultas {estado_txt}\n'
+                f'Ultimo Corte: {corte_txt}\n'
+                f'Vista: ZONAL / SUPERVISOR'
+            )
+            wa.send_image(WA_GRUPO, imagen, caption=texto)
+        else:
+            wa.send_text(
+                WA_GRUPO,
+                f'Dashboard Consultas actualizado ({ahora}) - captura no disponible.'
+            )
+
+        # Enviar mensajes de vendedores sin consultas (uno por supervisor)
+        try:
+            enviar_ausentes(wa, WA_GRUPO, ultimo_corte=ultimo_corte)
+            logger.info('Mensajes de vendedores sin consultas enviados.')
+        except Exception as e:
+            logger.error(f'No se pudo generar/enviar mensajes de ausentes: {e}')
 
     gmail_service.users().messages().modify(
         userId='me',

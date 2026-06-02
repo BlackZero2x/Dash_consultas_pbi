@@ -18,11 +18,15 @@
 # ══════════════════════════════════════════════════════════════
 
 import sys
+import io
 import time
 import os
 import socket
 import subprocess
 from datetime import datetime
+
+# Forzar UTF-8 en stdout para que los emojis no rompan en consolas Windows (cp1252)
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 import os
 from dotenv import load_dotenv
@@ -37,6 +41,7 @@ from extraer_datos import ejecutar as extraer
 from actualizar_pbi import triggerear_refresh, obtener_estado_refresh
 from capturar_pbi import capturar_pagina, CHROME_EXE, CHROME_ARGS
 from wa_client import WhatsAppClient
+from vendedores_sin_consultas import enviar_mensajes as enviar_ausentes
 
 WA_GRUPO              = os.environ['WA_GRUPO']
 REFRESH_POLL_INTERVAL = 30
@@ -123,6 +128,26 @@ def paso_whatsapp(imagen, corte=None):
     wa.send_image(WA_GRUPO, imagen, caption=texto)
 
 
+def paso_vendedores_sin_consultas(destino=None):
+    """
+    Genera y envía la lista de vendedores sin consultas hoy.
+    destino: ID o nombre de WA. Si es None, usa WA_GRUPO.
+    """
+    print('=== VENDEDORES SIN CONSULTAS ===')
+    wa = WhatsAppClient(
+        host='localhost',
+        port=int(os.environ.get('WA_PORT', '8002')),
+        config_path=os.environ.get('WA_CONFIG_PATH', ''),
+    )
+    if not wa.is_ready():
+        print('ERROR: Servidor WhatsApp no disponible.')
+        sys.exit(1)
+
+    to = destino or WA_GRUPO
+    enviar_ausentes(wa, to)
+    print(f'Mensajes enviados a: {to}')
+
+
 def pipeline_completo():
     print('=== PIPELINE COMPLETO ===\n')
 
@@ -170,5 +195,20 @@ if __name__ == '__main__':
         txt_path   = os.path.splitext(imagen_arg)[0] + '.txt'
         corte_arg  = open(txt_path, encoding='utf-8').read().strip() if os.path.exists(txt_path) else None
         paso_whatsapp(imagen_arg, corte_arg)
+    elif '--solo-vendedores' in args:
+        # Envía al grupo de producción
+        paso_vendedores_sin_consultas(destino=WA_GRUPO)
+    elif '--solo-vendedores-mi-numero' in args:
+        # Envía a tu número personal (prueba)
+        wa_cfg = WhatsAppClient(
+            host='localhost',
+            port=int(os.environ.get('WA_PORT', '8002')),
+            config_path=os.environ.get('WA_CONFIG_PATH', ''),
+        )
+        mi_numero = wa_cfg.config.get('my_number', '')
+        if not mi_numero:
+            print("ERROR: 'my_number' no definido en config.json")
+            sys.exit(1)
+        paso_vendedores_sin_consultas(destino=mi_numero)
     else:
         pipeline_completo()
